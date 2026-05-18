@@ -1,0 +1,36 @@
+{
+  "name": "Order Confirmation Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "mushroombox-order-confirmed",
+        "options": {}
+      },
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [ 250, 300 ],
+      "webhookId": "order-confirmed-webhook"
+    },
+    {
+      "parameters": {
+        "toEmail": "={{$json.body.customer_email}}",
+        "subject": "Your Mushroombox Order #{{$json.body.order_number}} is confirmed!",
+        "html": "Thank you for your order! It is being packed."
+      },
+      "name": "Send Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [ 450, 300 ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [ { "node": "Send Email", "type": "main", "index": 0 } ]
+      ]
+    }
+  },
+  "active": false
+}

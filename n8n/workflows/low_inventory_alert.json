@@ -1,0 +1,46 @@
+{
+  "name": "Low Inventory Alert",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [ { "field": "minutes", "minutesInterval": 60 } ]
+        }
+      },
+      "name": "Schedule",
+      "type": "n8n-nodes-base.schedule",
+      "typeVersion": 1,
+      "position": [ 250, 300 ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://api.mushroombox.in/internal/inventory/low-stock-check",
+        "options": {}
+      },
+      "name": "Check DB via API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [ 450, 300 ]
+    },
+    {
+      "parameters": {
+        "chatId": "=@OPS_TEAM_CHAT_ID",
+        "text": "🚨 Low stock alert: {{$json.body.sku}} has {{$json.body.quantity_available}} units left."
+      },
+      "name": "Telegram Alert",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [ 650, 300 ]
+    }
+  ],
+  "connections": {
+    "Schedule": {
+      "main": [ [ { "node": "Check DB via API", "type": "main", "index": 0 } ] ]
+    },
+    "Check DB via API": {
+      "main": [ [ { "node": "Telegram Alert", "type": "main", "index": 0 } ] ]
+    }
+  },
+  "active": false
+}

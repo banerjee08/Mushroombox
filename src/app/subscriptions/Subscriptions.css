@@ -1,0 +1,309 @@
+.subscriptions-page {
+  padding: 100px 0 60px;
+  background-color: var(--color-background);
+  min-height: 100vh;
+}
+
+.subscriptions-header {
+  text-align: center;
+  margin-bottom: 50px;
+}
+
+.subscriptions-header h1 {
+  font-family: var(--font-heading);
+  font-size: 2.5rem;
+  color: var(--color-primary);
+  margin-bottom: 16px;
+}
+
+.subscriptions-header p {
+  color: var(--color-text-secondary);
+  font-size: 1.1rem;
+  max-width: 600px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+.billing-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 40px;
+}
+
+.toggle-label {
+  font-weight: 500;
+  color: var(--color-text-primary);
+  cursor: pointer;
+}
+
+.toggle-switch {
+  position: relative;
+  width: 60px;
+  height: 32px;
+  background-color: var(--color-primary-light);
+  border-radius: 20px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.toggle-switch::after {
+  content: '';
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 24px;
+  height: 24px;
+  background-color: white;
+  border-radius: 50%;
+  transition: 0.3s;
+}
+
+.toggle-switch.active::after {
+  transform: translateX(28px);
+}
+
+.discount-badge {
+  background-color: #4CAF50;
+  color: white;
+  font-size: 0.8rem;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-weight: bold;
+}
+
+.tiers-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+  margin-bottom: 60px;
+}
+
+.tier-card {
+  background-color: var(--color-surface);
+  border-radius: 16px;
+  padding: 30px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.3s, box-shadow 0.3s;
+  border: 1px solid var(--color-border);
+}
+
+.tier-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+}
+
+.tier-card.featured {
+  border: 2px solid var(--color-primary);
+  position: relative;
+}
+
+.featured-badge {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: var(--color-primary);
+  color: white;
+  padding: 4px 16px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: bold;
+}
+
+.tier-icon {
+  font-size: 2.5rem;
+  margin-bottom: 20px;
+}
+
+.tier-title {
+  font-size: 1.5rem;
+  font-family: var(--font-heading);
+  color: var(--color-text-primary);
+  margin-bottom: 8px;
+}
+
+.tier-audience {
+  color: var(--color-primary);
+  font-weight: 500;
+  margin-bottom: 16px;
+}
+
+.tier-price {
+  font-size: 2rem;
+  font-weight: bold;
+  color: var(--color-text-primary);
+  margin-bottom: 8px;
+}
+
+.tier-price span {
+  font-size: 1rem;
+  font-weight: normal;
+  color: var(--color-text-secondary);
+}
+
+.price-strike {
+  text-decoration: line-through;
+  color: #999;
+  font-size: 1.1rem;
+  margin-bottom: 4px;
+}
+
+.tier-qty {
+  font-weight: 500;
+  color: var(--color-text-primary);
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.tier-desc {
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+  margin-bottom: 24px;
+  flex-grow: 1;
+}
+
+.subscribe-btn {
+  background-color: var(--color-primary);
+  color: white;
+  border: none;
+  padding: 14px;
+  border-radius: 8px;
+  font-size: 1.05rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: 0.3s;
+  width: 100%;
+}
+
+.subscribe-btn:hover {
+  background-color: var(--color-primary-dark);
+}
+
+.subscribe-btn.secondary {
+  background-color: transparent;
+  border: 2px solid var(--color-primary);
+  color: var(--color-primary);
+}
+
+.subscribe-btn.secondary:hover {
+  background-color: var(--color-primary-light);
+  color: var(--color-primary-dark);
+}
+
+.frequency-section {
+  background-color: var(--color-surface);
+  border-radius: 16px;
+  padding: 40px;
+  margin-bottom: 60px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+}
+
+.frequency-section h2 {
+  font-family: var(--font-heading);
+  margin-bottom: 24px;
+  color: var(--color-text-primary);
+}
+
+.frequency-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+}
+
+.freq-card {
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+  transition: 0.3s;
+}
+
+.freq-card:hover {
+  border-color: var(--color-primary);
+}
+
+.freq-card h3 {
+  color: var(--color-primary);
+  margin-bottom: 8px;
+}
+
+.freq-card p {
+  color: var(--color-text-secondary);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.policy-section {
+  text-align: center;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.policy-section h3 {
+  color: var(--color-text-primary);
+  margin-bottom: 16px;
+}
+
+.policy-grid {
+  display: flex;
+  justify-content: center;
+  gap: 40px;
+  flex-wrap: wrap;
+}
+
+.policy-card {
+  flex: 1;
+  min-width: 250px;
+  background-color: var(--color-surface);
+  border-radius: 12px;
+  padding: 24px;
+}
+
+.policy-card h4 {
+  color: var(--color-primary);
+  margin-bottom: 8px;
+}
+
+.policy-card p {
+  color: var(--color-text-secondary);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+@media (max-width: 1024px) {
+  .tiers-grid {
+    gap: 15px;
+  }
+  .tier-card {
+    padding: 15px;
+  }
+  .tier-icon {
+    font-size: 2rem;
+    margin-bottom: 12px;
+  }
+  .tier-title {
+    font-size: 1.25rem;
+  }
+  .tier-price {
+    font-size: 1.5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .subscriptions-header h1 {
+    font-size: 2rem;
+  }
+  .tiers-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  .tier-audience,
+  .tier-desc {
+    display: none;
+  }
+}
