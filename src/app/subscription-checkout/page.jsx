@@ -104,9 +104,11 @@ function SubscriptionCheckoutContent() {
     setPaymentState('processing');
 
     try {
+      // 1. Get the Supabase Plan ID and dummy Razorpay Plan ID mapping
+      // In a real app, you would store the Razorpay Plan ID in the subscription_plans table
       const { data: planData, error: planError } = await supabase
         .from('subscription_plans')
-        .select('id')
+        .select('id, tier_name')
         .eq('tier_name', tierName)
         .limit(1)
         .single();
@@ -115,42 +117,104 @@ function SubscriptionCheckoutContent() {
         throw new Error('Subscription plan not found in database.');
       }
 
-      for (const d of deliveries) {
-        const { data: addressData, error: addrError } = await supabase
-          .from('customer_addresses')
-          .insert({
-            customer_id: user.id,
-            label: `Subscription for ${d.name}`,
-            line1: d.address,
-            line2: d.landmark || null,
-            city: d.city,
-            state: 'Delhi NCR',
-            pincode: d.pincode
-          })
-          .select('id')
-          .single();
+      // ── RAZORPAY INTEGRATION ──
+      // Mapping Tier + Interval to Razorpay Plan IDs (User needs to provide these)
+      const planIdMapping = {
+        'Healthy Living': isAnnual ? 'plan_annual_healthy' : 'plan_monthly_healthy',
+        'Foodie': isAnnual ? 'plan_annual_foodie' : 'plan_monthly_foodie',
+        'Family': isAnnual ? 'plan_annual_family' : 'plan_monthly_family',
+        'Gym Freaks': isAnnual ? 'plan_annual_gym' : 'plan_monthly_gym'
+      };
 
-        if (addrError) {
-          console.error("Address Error:", addrError);
+      const razorpayPlanId = planIdMapping[tierName];
+
+      // 2. Create Subscription on backend
+      const response = await fetch('/api/razorpay/create-subscription', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          planId: razorpayPlanId,
+          totalCount: isAnnual ? 1 : 12,
+          customerDetails: {
+            name: profile?.full_name || deliveries[0].name,
+            email: user.email,
+            contact: profile?.phone || deliveries[0].phone
+          }
+        }),
+      });
+
+      const { subscription_id, key_id, error: apiError } = await response.json();
+
+      if (apiError) throw new Error(apiError);
+
+      // 3. Open Razorpay Checkout
+      const options = {
+        key: key_id,
+        subscription_id: subscription_id,
+        name: 'Mushroombox',
+        description: `${tierName} Subscription`,
+        image: '/favicon.svg',
+        handler: async function (response) {
+          // Success! Now save to Supabase
+          try {
+            for (const d of deliveries) {
+              // Add Address
+              const { data: addressData, error: addrError } = await supabase
+                .from('customer_addresses')
+                .insert({
+                  customer_id: user.id,
+                  label: `Subscription for ${d.name}`,
+                  line1: d.address,
+                  line2: d.landmark || null,
+                  city: d.city,
+                  state: 'Delhi NCR',
+                  pincode: d.pincode
+                })
+                .select('id')
+                .single();
+
+              if (addrError) console.error("Address Error:", addrError);
+
+              // Add Subscription Record
+              const { error: subError } = await supabase
+                .from('subscriptions')
+                .insert({
+                  customer_id: user.id,
+                  plan_id: planData.id,
+                  status: 'active',
+                  next_delivery_at: startDate ? new Date(startDate).toISOString() : null,
+                  frequency: isAnnual ? 'annual' : 'monthly',
+                  razorpay_subscription_id: subscription_id,
+                  razorpay_plan_id: razorpayPlanId
+                });
+
+              if (subError) throw subError;
+            }
+            setPaymentState('success');
+          } catch (err) {
+            console.error('Database Error after payment:', err);
+            alert('Payment was successful but we failed to update your account. Please contact support. Ref: ' + subscription_id);
+          }
+        },
+        prefill: {
+          name: profile?.full_name || deliveries[0].name,
+          email: user.email,
+          contact: profile?.phone || deliveries[0].phone
+        },
+        theme: { color: '#2d5a27' },
+        modal: {
+          ondismiss: function() {
+            setPaymentState('idle');
+          }
         }
+      };
 
-        const { error: subError } = await supabase
-          .from('subscriptions')
-          .insert({
-            customer_id: user.id,
-            plan_id: planData.id,
-            status: 'active',
-            next_delivery_at: startDate ? new Date(startDate).toISOString() : null,
-            frequency: isAnnual ? 'annual' : 'monthly'
-          });
+      const rzp = new window.Razorpay(options);
+      rzp.open();
 
-        if (subError) throw subError;
-      }
-
-      setPaymentState('success');
     } catch (error) {
       console.error(error);
-      alert('Error saving subscription. Mock payment failed. Details: ' + error.message);
+      alert('Subscription setup failed: ' + error.message);
       setPaymentState('idle');
     }
   };

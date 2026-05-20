@@ -1,0 +1,51 @@
+{
+  "name": "Mushroombox KVM2 Sync",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8,12,16,20 * * *"
+            }
+          ]
+        }
+      },
+      "id": "e4e1a0b3-3a5c-4b1a-9c1a-1a2b3c4d5e6f",
+      "name": "Every 4 Hours (8AM-8PM)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "command": "~/projects/mushroombox/scripts/deploy-sync.sh"
+      },
+      "id": "f8d2b1c4-2d5d-6d3c-bd3c-3c4d5e6f7a8b",
+      "name": "Execute Sync Script",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        500,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Every 4 Hours (8AM-8PM)": {
+      "main": [
+        [
+          {
+            "node": "Execute Sync Script",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

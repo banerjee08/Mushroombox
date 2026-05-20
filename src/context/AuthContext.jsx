@@ -11,15 +11,15 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = async (userId) => {
-    const { data } = await supabase.from('profiles').select('*').eq('id', userId).single();
-    if (data) {
-      setProfile(data);
-    } else {
-      // User has been deleted from the database but browser holds ghost session
-      await supabase.auth.signOut();
+    try {
+      const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).single();
+      if (error && error.code !== 'PGRST116') { // PGRST116 is 'no rows found'
+        console.error('Error fetching profile:', error.message);
+      }
+      setProfile(data || null);
+    } catch (err) {
+      console.error('Unexpected error fetching profile:', err);
       setProfile(null);
-      setUser(null);
-      setSession(null);
     }
   };
 
