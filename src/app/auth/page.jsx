@@ -50,7 +50,12 @@ export default function Auth() {
   // ── Google ───────────────────────────────────────────────────────────────────
   const handleGoogleLogin = async () => {
     try {
-      const { error } = await supabase.auth.signInWithOAuth({ provider: 'google' });
+      const { error } = await supabase.auth.signInWithOAuth({ 
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth`
+        }
+      });
       if (error) throw error;
     } catch (err) {
       setErrorMsg('Google sign-in failed. Please check your Supabase configuration.');
@@ -64,7 +69,13 @@ export default function Auth() {
     setAuthLoading(true);
 
     if (isSignUp) {
-      const { error: signUpError } = await supabase.auth.signUp({ email, password });
+      const { error: signUpError } = await supabase.auth.signUp({ 
+        email, 
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth`
+        }
+      });
       if (signUpError) {
         if (signUpError.message.includes('User already registered') || signUpError.message.includes('already exists')) {
           setErrorMsg('This email is already registered. Please Sign In instead.');
@@ -101,7 +112,13 @@ export default function Auth() {
     resetMessages();
     setAuthLoading(true);
     const formattedPhone = formatPhone(phone);
-    const { error } = await supabase.auth.signInWithOtp({ phone: formattedPhone });
+    const { error } = await supabase.auth.signInWithOtp({ 
+      phone: formattedPhone,
+      options: {
+        shouldCreateUser: true,
+        channel: 'sms'
+      }
+    });
     if (error) {
       setErrorMsg(error.message);
     } else {
