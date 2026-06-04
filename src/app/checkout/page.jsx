@@ -201,20 +201,94 @@ export default function Checkout() {
 
     setPaymentState('processing');
 
-    // MOCK Payment & Order Generation
-    setTimeout(() => {
-       const newOrders = deliveries
-         .filter(d => Object.keys(d.items).length > 0)
-         .map((d, index) => ({
-            id: Math.floor(Math.random() * 1_000_000) + index,
-            recipient: d.name,
-            pincode: d.pincode
-         }));
-         
-       setSuccessOrders(newOrders);
-       setPaymentState('success');
-       clearCart();
-    }, 2000);
+    try {
+      // 1. Create order on the backend
+      const response = await fetch('/api/razorpay/create-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount: grandTotal * 100, // Razorpay expects amount in paise
+          currency: 'INR',
+          receipt: `order_${Date.now()}`
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to create order');
+
+      const { order_id } = data;
+
+      // 2. Configure Razorpay options
+      const options = {
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+        amount: grandTotal * 100,
+        currency: 'INR',
+        name: 'Mushroombox',
+        description: 'Purchase of fresh mushrooms',
+        order_id: order_id,
+        handler: async (response) => {
+          // 3. Verify payment on the backend
+          try {
+            const verificationResponse = await fetch('/api/razorpay/verify-payment', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+              }),
+            });
+
+            const verificationData = await verificationResponse.json();
+            if (verificationData.status === 'success') {
+              const newOrders = deliveries
+                .filter(d => Object.keys(d.items).length > 0)
+                .map((d, index) => ({
+                   id: response.razorpay_order_id + '-' + index,
+                   recipient: d.name,
+                   pincode: d.pincode
+                }));
+                
+              setSuccessOrders(newOrders);
+              setPaymentState('success');
+              clearCart();
+            } else {
+              throw new Error(verificationData.message || 'Verification failed');
+            }
+          } catch (error) {
+            console.error('Verification Error:', error);
+            alert(`Payment verification failed: ${error.message}`);
+            setPaymentState('idle');
+          }
+        },
+        prefill: {
+          name: profile?.full_name || user?.email || '',
+          email: user?.email || '',
+          contact: profile?.phone || '',
+        },
+        theme: {
+          color: '#4a7c44', // Matching Mushroombox theme
+        },
+        modal: {
+          ondismiss: () => {
+            setPaymentState('idle');
+          }
+        }
+      };
+
+      const rzp = new window.Razorpay(options);
+      
+      rzp.on('payment.failed', function (response) {
+        alert(`Payment failed: ${response.error.description}`);
+        setPaymentState('idle');
+      });
+
+      rzp.open();
+    } catch (error) {
+      console.error('Payment Error:', error);
+      alert(`Error initializing payment: ${error.message}`);
+      setPaymentState('idle');
+    }
   };
 
   const handlePopupSubmit = async (e) => {
