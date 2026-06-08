@@ -3,9 +3,9 @@ import { NextResponse } from 'next/server';
 
 export async function POST(req) {
   try {
-    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = await req.json();
+    const { razorpay_order_id, razorpay_subscription_id, razorpay_payment_id, razorpay_signature } = await req.json();
 
-    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+    if (!razorpay_payment_id || !razorpay_signature) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
@@ -14,10 +14,22 @@ export async function POST(req) {
       return NextResponse.json({ error: 'Razorpay secret missing on server' }, { status: 500 });
     }
 
-    const generated_signature = crypto
-      .createHmac('sha256', secret)
-      .update(`${razorpay_order_id}|${razorpay_payment_id}`)
-      .digest('hex');
+    let generated_signature;
+    if (razorpay_order_id) {
+      // Order signature verification
+      generated_signature = crypto
+        .createHmac('sha256', secret)
+        .update(`${razorpay_order_id}|${razorpay_payment_id}`)
+        .digest('hex');
+    } else if (razorpay_subscription_id) {
+      // Subscription signature verification
+      generated_signature = crypto
+        .createHmac('sha256', secret)
+        .update(`${razorpay_payment_id}|${razorpay_subscription_id}`)
+        .digest('hex');
+    } else {
+      return NextResponse.json({ error: 'Either razorpay_order_id or razorpay_subscription_id must be provided' }, { status: 400 });
+    }
 
     if (generated_signature === razorpay_signature) {
       return NextResponse.json({ status: 'success', message: 'Payment verified successfully' });

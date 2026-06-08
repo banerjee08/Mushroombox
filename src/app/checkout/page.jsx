@@ -241,17 +241,99 @@ export default function Checkout() {
 
             const verificationData = await verificationResponse.json();
             if (verificationData.status === 'success') {
-              const newOrders = deliveries
-                .filter(d => Object.keys(d.items).length > 0)
-                .map((d, index) => ({
-                   id: response.razorpay_order_id + '-' + index,
-                   recipient: d.name,
-                   pincode: d.pincode
-                }));
-                
-              setSuccessOrders(newOrders);
-              setPaymentState('success');
-              clearCart();
+              // 4. Save to Database
+              try {
+                const results = [];
+                for (let i = 0; i < deliveries.length; i++) {
+                  const d = deliveries[i];
+                  const itemIds = Object.keys(d.items);
+                  if (itemIds.length === 0) continue;
+
+                  // A. Create Address
+                  const { data: addressData, error: addrError } = await supabase
+                    .from('customer_addresses')
+                    .insert({
+                      customer_id: user.id,
+                      label: `Order for ${d.name}`,
+                      line1: d.address,
+                      city: d.city,
+                      state: 'Delhi NCR',
+                      pincode: d.pincode
+                    })
+                    .select('id')
+                    .single();
+                  
+                  if (addrError) throw addrError;
+
+                  // B. Calculate Order Totals
+                  const orderSubtotal = itemIds.reduce((sum, id) => {
+                    const item = cartItems.find(it => it.id === Number(id));
+                    return sum + (item ? item.price * d.items[id] : 0);
+                  }, 0);
+                  const orderDeliveryFee = orderSubtotal >= 500 ? 0 : 50;
+                  const orderTotal = orderSubtotal + orderDeliveryFee;
+
+                  // C. Create Order
+                  const { data: orderData, error: orderError } = await supabase
+                    .from('orders')
+                    .insert({
+                      order_number: `MB-${Date.now()}-${i}`,
+                      customer_id: user.id,
+                      address_id: addressData.id,
+                      status: 'confirmed',
+                      subtotal: orderSubtotal,
+                      delivery_fee: orderDeliveryFee,
+                      total: orderTotal,
+                      payment_status: 'captured'
+                    })
+                    .select('id')
+                    .single();
+
+                  if (orderError) throw orderError;
+
+                  // D. Add Order Items
+                  const orderItemsToInsert = itemIds.map(id => {
+                    const item = cartItems.find(it => it.id === Number(id));
+                    return {
+                      order_id: orderData.id,
+                      variant_id: item.variant_id || '00000000-0000-0000-0000-000000000000', // Need real variant_id
+                      quantity: d.items[id],
+                      unit_price: item.price
+                    };
+                  });
+                  
+                  const { error: itemsError } = await supabase.from('order_items').insert(orderItemsToInsert);
+                  if (itemsError) throw itemsError;
+
+                  // E. Record Payment
+                  const { error: paymentError } = await supabase.from('payments').insert({
+                    order_id: orderData.id,
+                    gateway: 'razorpay',
+                    gateway_order_id: response.razorpay_order_id,
+                    gateway_payment_id: response.razorpay_payment_id,
+                    amount: orderTotal,
+                    currency: 'INR',
+                    status: 'captured',
+                    payload: response
+                  });
+                  if (paymentError) throw paymentError;
+
+                  results.push({
+                    id: orderData.id,
+                    recipient: d.name,
+                    pincode: d.pincode
+                  });
+                }
+
+                setSuccessOrders(results);
+                setPaymentState('success');
+                clearCart();
+                sessionStorage.removeItem('checkoutDeliveries');
+              } catch (dbErr) {
+                console.error('Database Persistence Error:', dbErr);
+                alert('Payment successful, but failed to save order details. Our team will contact you. Ref: ' + response.razorpay_payment_id);
+                setPaymentState('idle');
+              }
             } else {
               throw new Error(verificationData.message || 'Verification failed');
             }

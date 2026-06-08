@@ -155,8 +155,23 @@ function SubscriptionCheckoutContent() {
         description: `${tierName} Subscription`,
         image: '/favicon.svg',
         handler: async function (response) {
-          // Success! Now save to Supabase
+          // Success! Now verify on server and then save to Supabase
           try {
+            const verificationResponse = await fetch('/api/razorpay/verify-payment', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                razorpay_subscription_id: subscription_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+              }),
+            });
+
+            const verificationData = await verificationResponse.json();
+            if (verificationData.status !== 'success') {
+              throw new Error(verificationData.message || 'Payment verification failed');
+            }
+
             for (const d of deliveries) {
               // Add Address
               const { data: addressData, error: addrError } = await supabase
@@ -192,8 +207,9 @@ function SubscriptionCheckoutContent() {
             }
             setPaymentState('success');
           } catch (err) {
-            console.error('Database Error after payment:', err);
-            alert('Payment was successful but we failed to update your account. Please contact support. Ref: ' + subscription_id);
+            console.error('Verification or Database Error after payment:', err);
+            alert('Failed to complete subscription: ' + err.message);
+            setPaymentState('idle');
           }
         },
         prefill: {
